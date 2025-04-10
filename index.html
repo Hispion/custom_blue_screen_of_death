@@ -1,0 +1,279 @@
+<title>Custom Blue Screen of Death</title>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", sans-serif;
+    overflow: hidden;
+}
+
+.bsod-container {
+    width: 100vw;
+    height: 100vh;
+    background-color: #0078d7;
+    color: white;
+    padding: 50px;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease;
+}
+
+.sad-face {
+    font-size: 60px;
+    margin-bottom: 20px;
+    cursor: move;
+    position: relative;
+    user-select: none;
+}
+
+.text-content {
+    font-size: 20px;
+    line-height: 1.5;
+}
+
+.text-content > * {
+    cursor: move;
+    position: relative;
+    user-select: none;
+}
+
+.progress {
+    margin: 20px 0;
+}
+
+.qr-code {
+    width: 150px;
+    height: 150px;
+    margin-top: 20px;
+    cursor: move;
+}
+
+.controls {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px;
+    border-radius: 8px;
+    z-index: 1000;
+}
+
+.controls label {
+    display: block;
+    margin: 10px 0;
+    color: #333;
+}
+
+.controls input, .controls textarea {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.preview-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background: #0078d7;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+.preview-button:hover {
+    background: #006cc1;
+}
+
+.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2000;
+}
+
+.hidden {
+    display: none !important;
+}
+</style>
+</head>
+<body>
+
+<div class="bsod-container" id="bsodScreen">
+    <div class="sad-face" draggable="true">:(</div>
+    <div class="text-content">
+        <p id="mainText" draggable="true">Your device ran into a problem and needs to restart.</p>
+        <p id="subText" draggable="true">We're just collecting some error info, and then we'll restart for you.</p>
+        <div class="progress" draggable="true">
+            <span id="progressText">0% complete</span>
+        </div>
+        <div id="qrSection" draggable="true">
+            <svg class="qr-code" id="qrCode" viewBox="0 0 100 100">
+                <!-- QR code will be generated here -->
+            </svg>
+        </div>
+    </div>
+</div>
+
+<div class="controls" id="controls">
+    <label>Background Color:
+        <input type="color" id="bgColor" value="#0078d7">
+    </label>
+    <label>Main Text:
+        <textarea id="mainTextInput">Your device ran into a problem and needs to restart.</textarea>
+    </label>
+    <label>Main Text Size (px):
+        <input type="number" id="mainTextSize" value="20" min="10" max="100">
+    </label>
+    <label>Sub Text:
+        <textarea id="subTextInput">We're just collecting some error info, and then we'll restart for you.</textarea>
+    </label>
+    <label>Sub Text Size (px):
+        <input type="number" id="subTextSize" value="20" min="10" max="100">
+    </label>
+    <label>Sad Face Size (px):
+        <input type="number" id="sadFaceSize" value="60" min="20" max="200">
+    </label>
+    <label>Progress:
+        <input type="number" id="progressInput" min="0" max="100" value="0">%
+    </label>
+    <label>QR Code URL:
+        <input type="text" id="qrUrlInput" value="https://www.windows.com/stopcode">
+    </label>
+</div>
+
+<button class="preview-button" id="previewButton">Preview Fullscreen</button>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const controls = document.getElementById('controls');
+    const previewButton = document.getElementById('previewButton');
+    const bsodScreen = document.getElementById('bsodScreen');
+    
+    const bgColorInput = document.getElementById('bgColor');
+    const mainTextInput = document.getElementById('mainTextInput');
+    const subTextInput = document.getElementById('subTextInput');
+    const mainTextSizeInput = document.getElementById('mainTextSize');
+    const subTextSizeInput = document.getElementById('subTextSize');
+    const sadFaceSizeInput = document.getElementById('sadFaceSize');
+    const progressInput = document.getElementById('progressInput');
+    const qrUrlInput = document.getElementById('qrUrlInput');
+    
+    const mainTextDisplay = document.getElementById('mainText');
+    const subTextDisplay = document.getElementById('subText');
+    const progressText = document.getElementById('progressText');
+    const qrCode = document.getElementById('qrCode');
+
+    function updateBSOD() {
+        bsodScreen.style.backgroundColor = bgColorInput.value;
+        mainTextDisplay.textContent = mainTextInput.value;
+        subTextDisplay.textContent = subTextInput.value;
+        mainTextDisplay.style.fontSize = `${mainTextSizeInput.value}px`;
+        subTextDisplay.style.fontSize = `${subTextSizeInput.value}px`;
+        progressText.textContent = `${progressInput.value}% complete`;
+        generateQR(qrUrlInput.value);
+    }
+
+    function generateQR(url) {
+        const qr = qrcode(0, 'L');
+        qr.addData(url);
+        qr.make();
+        
+        const modules = qr.getModuleCount();
+        const path = [];
+        
+        for(let row = 0; row < modules; row++) {
+            for(let col = 0; col < modules; col++) {
+                if(qr.isDark(row, col)) {
+                    path.push(`M${col} ${row}h1v1h-1z`);
+                }
+            }
+        }
+
+        qrCode.innerHTML = `
+            <path d="${path.join('')}" fill="white" transform="scale(2)"/>
+        `;
+    }
+
+    mainTextSizeInput.addEventListener('input', updateBSOD);
+    subTextSizeInput.addEventListener('input', updateBSOD);
+    sadFaceSizeInput.addEventListener('input', (e) => {
+        document.querySelector('.sad-face').style.fontSize = `${e.target.value}px`;
+    });
+
+    bgColorInput.addEventListener('input', updateBSOD);
+    mainTextInput.addEventListener('input', updateBSOD);
+    subTextInput.addEventListener('input', updateBSOD);
+    progressInput.addEventListener('input', updateBSOD);
+    qrUrlInput.addEventListener('input', updateBSOD);
+
+    const draggableElements = document.querySelectorAll('[draggable="true"]');
+    
+    draggableElements.forEach(elem => {
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        elem.addEventListener('mousedown', dragStart);
+        elem.addEventListener('mousemove', drag);
+        elem.addEventListener('mouseup', dragEnd);
+        elem.addEventListener('mouseleave', dragEnd);
+
+        function dragStart(e) {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+
+            if (e.target === elem) {
+                isDragging = true;
+            }
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                setTranslate(currentX, currentY, elem);
+            }
+        }
+
+        function dragEnd(e) {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+        }
+
+        function setTranslate(xPos, yPos, el) {
+            el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+        }
+    });
+
+    previewButton.addEventListener('click', () => {
+        bsodScreen.classList.add('fullscreen');
+        controls.classList.add('hidden');
+        previewButton.classList.add('hidden');
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            bsodScreen.classList.remove('fullscreen');
+            controls.classList.remove('hidden');
+            previewButton.classList.remove('hidden');
+        }
+    });
+
+    updateBSOD();
+});
+</script>
+</body></html>
